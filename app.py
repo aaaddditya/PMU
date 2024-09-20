@@ -23,7 +23,7 @@ def display_navbar():
 
 # Input Form Functionality
 def input_form(df):
-    st.title("Input Data for MLA Activities")
+    st.title("Input Data for The MLA Activities")
 
     # Date (default value is today)
     input_date = st.date_input('Date', value=date.today())

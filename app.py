@@ -2,28 +2,83 @@ import streamlit as st
 import pandas as pd
 import os
 from datetime import date
+import numpy as np
+from streamlit_navigation_bar import st_navbar
 
-# Function to load the data for the dashboard (based on the selected date and AC name)
+st.set_page_config(
+    layout="wide",
+)
+
 def load_data(selected_date, selected_ac_name):
+    file_name = f"{selected_date.strftime('%d%m%Y')}.csv"
+    if os.path.exists(file_name):
+        try:
+            df = pd.read_csv(file_name)
+            if df.empty:
+                st.warning("The file is empty. No data available.")
+                return None
+            # Filter the data by AC Name
+            filtered_df = df[df['AC Name'] == selected_ac_name]
+            return filtered_df
+        except pd.errors.EmptyDataError:
+            st.error(f"The file {file_name} is empty.")
+            return None
+    else:
+        st.warning(f"No data file found for the date {selected_date.strftime('%d%m%Y')}.")
+        return None
+
+# Function to load AC data from 118_AC_list.csv
+def load_ac_data(ac_name):
+    ac_data = pd.read_csv('118_AC_list.csv')
+    # Filter the data for the selected AC Name
+    filtered_ac_data = ac_data[ac_data['AC Name'] == ac_name]
+    if not filtered_ac_data.empty:
+        return filtered_ac_data.iloc[0]  # Return the first matching row
+    else:
+        return None
+    
+def load_ddmm_data(selected_date, ac_name):
     file_name = f"{selected_date.strftime('%d%m%Y')}.csv"
     if os.path.exists(file_name):
         df = pd.read_csv(file_name)
         # Filter the data by AC Name
-        filtered_df = df[df['AC Name'] == selected_ac_name]
+        filtered_df = df[df['AC Name'] == ac_name]
         return filtered_df
     else:
         return None
-
+        
 # Navbar Functionality (Tab navigation)
 def display_navbar():
     # Define the tabs
     tabs = ["Home", "Input", "Dashboard"]
-    tab = st.sidebar.radio("Navigation", tabs)
+    styles = {
+    "nav": {
+        "background-color": "rgb(123, 209, 146)",
+    },
+    "div": {
+        "max-width": "32rem",
+    },
+    "span": {
+        "border-radius": "0.5rem",
+        "color": "rgb(49, 51, 63)",
+        "margin": "0 0.125rem",
+        "padding": "0.4375rem 0.625rem",
+    },
+    "active": {
+        "background-color": "rgba(255, 255, 255, 0.25)",
+    },
+    "hover": {
+        "background-color": "rgba(255, 255, 255, 0.35)",
+    },
+}
+    # tab = st.sidebar.radio("Navigation", tabs)
+    tab=st_navbar(["Home", "Input", "Dashboard"], styles=styles)
     return tab
 
 # Input Form Functionality
 def input_form(df):
-    st.title("Input Data for The MLA Activities")
+
+    st.title("Input Data for MLA Activities")
 
     # Date (default value is today)
     input_date = st.date_input('Date', value=date.today())
@@ -52,6 +107,15 @@ def input_form(df):
     for party in opposition_parties:
         opposition_activity_details[party] = st.text_area(f"Opposition Details for {party}")
 
+    # New - Issues dropdown with multiple selection
+    issues_options = ['Disputes', 'Leader Activation', 'Joinings', 'Alliance Coordination', 'Organizational Issue']
+    selected_issues = st.multiselect('Issues', options=issues_options)
+
+    # Issues Details (text input for each selected issue)
+    issues_details = {}
+    for issue in selected_issues:
+        issues_details[issue] = st.text_area(f"Issues Details for {issue}")
+
     # Narrative
     narrative = st.text_area('Narrative')
 
@@ -60,6 +124,7 @@ def input_form(df):
 
     # Escalation levels (dropdown with custom options)
     escalation_level = st.selectbox('Escalation Levels', options=['Alert', 'Mid Alert', 'Normal'])
+    Issue_raised = st.selectbox('Issue Raised to', options=['Anurag', 'Anant', 'Alimpan Banerjee'])
 
     # Button to submit the data
     if st.button('Submit'):
@@ -77,9 +142,12 @@ def input_form(df):
                 'Alliance Activity': alliance_activity_details.get(alliance_parties[i], '') if i < len(alliance_parties) else '',
                 'Opposition Party': opposition_parties[i] if i < len(opposition_parties) else '',
                 'Opposition Activity': opposition_activity_details.get(opposition_parties[i], '') if i < len(opposition_parties) else '',
+                'Issues': selected_issues[i] if i < len(selected_issues) else '',
+                'Issues Details': issues_details.get(selected_issues[i], '') if i < len(selected_issues) else '',
                 'Narrative': narrative,
                 'Escalation Detail': escalation_detail,
-                'Escalation Level': escalation_level
+                'Escalation Level': escalation_level,
+                'Issue Raised to': Issue_raised
             }
             rows.append(row)
 
@@ -101,36 +169,119 @@ def input_form(df):
         st.success(f"Data successfully saved to {file_name}")
 
 # Dashboard Functionality
-def dashboard():
-    st.title("Dashboard")
+def display_dashboard():
+    st.title("AC Dashboard")
 
-    # Date input for filtering the CSV
+    # Date and AC Name input
     selected_date = st.date_input('Select Date for Data', value=date.today())
 
-    # Load unique AC Names from a sample CSV (for dropdown)
-    df_sample = pd.read_csv('288_MLA.csv')
-    unique_ac_names = df_sample.iloc[:, 2].unique()
+    # Load unique AC Names from 118_AC_list.csv
+    ac_list = pd.read_csv('118_AC_list.csv')
+    unique_ac_names = np.sort(ac_list['AC Name'].unique())
     selected_ac_name = st.selectbox('Select AC Name', options=unique_ac_names)
 
-    # Submit button to display filtered data
-    if st.button('Show Data'):
-        filtered_data = load_data(selected_date, selected_ac_name)
-        if filtered_data is not None and not filtered_data.empty:
-            st.write(filtered_data)
+    # Fetch and display AC details from 118_AC_list.csv
+    ac_details = load_ac_data(selected_ac_name)
+    if ac_details is not None:
+        # Show Zone at the top
+        st.subheader(f"Zone: {ac_details['Zone']}")
+        
+        # Create two columns for District (left) and AC Name + AC No (right)
+        col1, col2 ,col3= st.columns(3)
+        with col1:
+            st.text(f"District: {ac_details['District']}")
+        with col2:
+            st.text(f"AC Name: {ac_details['AC Name']}")
+        with col3:    
+            st.text(f"AC No: {ac_details['AC No']}")
+        
+        # Create a row with Current MLA, Party, Margin_2019, GE2024 Status, Margin_2024
+        col1, col2, col3, col4, col5 = st.columns(5)
+        with col1:
+            st.text(f"Current MLA: {ac_details['Current MLA']}")
+        with col2:
+            st.text(f"Party: {ac_details['Party']}")
+        with col3:
+            st.text(f"Margin 2019: {ac_details['Margin_2019']}")
+        with col4:
+            st.text(f"GE2024 Status: {ac_details['GE2024 Status']}")
+        with col5:
+            st.text(f"Margin 2024: {ac_details['Margin_2024']}")
+
+        st.write("---")
+
+        # Fetch data from DDMMYYYY.csv
+        ddmm_data = load_ddmm_data(selected_date, selected_ac_name)
+        if ddmm_data is not None and not ddmm_data.empty:
+            for index, row in ddmm_data.iterrows():
+                # Display Date and Issue Raised To
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.text(f"Date: {row['Date']}")
+                with col2:
+                    st.text(f"Issue Raised To: {row['Issue Raised to']}")
+
+                # Display Escalation Level and Escalation Detail
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.text(f"Escalation Level: {row['Escalation Level']}")
+                with col2:
+                    st.text(f"Escalation Detail: {row['Escalation Detail']}")
+
+                # Display Narrative in the middle
+                st.text(f"Narrative: {row['Narrative']}")
+                st.write("---")
+                break
+            for index, row in ddmm_data.iterrows():
+                # Display Date and Issue Raised To
+        
+                # Display Alliance Party and Alliance Activity
+                col1, col2 = st.columns(2)
+                with col1:
+                    if type(row['Alliance Party'])==str: 
+                
+                        st.text(f"Alliance Party: {row['Alliance Party']}")
+                with col2:
+                    if type(row['Alliance Activity'])==str:
+
+                        st.text(f"Alliance Activity: {row['Alliance Activity']}")
+
+                # Display Opposition Party and Opposition Activity
+                col1, col2 = st.columns(2)
+                with col1:
+                    if type(row['Opposition Party'])==str:
+                        st.text(f"Opposition Party: {row['Opposition Party']}")
+                with col2:
+                    if type(row['Opposition Activity'])==str:
+                        st.text(f"Opposition Activity: {row['Opposition Activity']}")
+
+                # Display Issues and Issues Details
+                col1, col2 = st.columns(2)
+                with col1:
+                    if type(row['Issues'])==str:
+                        st.text(f"Issues: {row['Issues']}")
+                with col2:
+                    if type(row['Issues Details'])==str:
+                        st.markdown(f"<p style='font-family:sans-serif; color:Green; font-size: 42px;'>Issues Details: {row['Issues Details']}</p>", unsafe_allow_html=True)
         else:
-            st.warning("No data available for the selected date and AC Name.")
+            st.warning(f"No data available for the selected date and AC Name.")
+
+    else:
+        st.error(f"No data found for AC Name: {selected_ac_name}")
 
 # Home Page Functionality
 def home_page():
     st.title("Home")
     st.write("Welcome to the MLA Activities Dashboard! Use the navigation to input data or view the dashboard.")
-
+    new_title = '<p style="font-family:sans-serif; color:Green; font-size: 42px;">Aditya</p>'
+    st.markdown(new_title, unsafe_allow_html=True)
 # Main Streamlit App
 def main():
     # Display the navigation bar and switch between tabs
+    # page = st_navbar(["Home", "Input", "Dashboard"])
     tab = display_navbar()
 
-    # Load data for input form
+    # Load data for input formstreamlit 
     df = pd.read_csv('288_MLA.csv')
 
     # Home tab
@@ -143,7 +294,7 @@ def main():
 
     # Dashboard tab
     elif tab == "Dashboard":
-        dashboard()
+        display_dashboard()
 
 if __name__ == "__main__":
     main()

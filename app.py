@@ -338,30 +338,31 @@ def display_director_dashboard():
     # Load data
     ac_list = load_ac_list()
     mla_activities = load_mla_activities()
+    
+    st.markdown("## State Summary")
+    filtered_activities1=mla_activities[(mla_activities['Zone Response'] == 'Pass')]
+    summary_data = {
+        "Total Escalations": filtered_activities1['Escalation'].count(),
+        "Pass": filtered_activities1[filtered_activities1['Director Response'] == 'Pass'].shape[0],
+        "Reject": filtered_activities1[filtered_activities1['Director Response'] == 'Reject'].shape[0],
+        "Hold": filtered_activities1[filtered_activities1['Director Response'] == 'Hold'].shape[0],
+        "Remaining": filtered_activities1['Director Response'].isna().sum()
+    }
 
+    st.write(pd.DataFrame([summary_data]))
     # Zone Selection
     unique_zones = ac_list['Zone'].unique()
     selected_zone = st.selectbox('Select Zone', options=unique_zones)
 
     # Filter AC Names based on selected Zone
     filtered_ac_names = ac_list[ac_list['Zone'] == selected_zone]['AC Name'].unique()
-
+    
     # Filter mla_activities based on the selected Zone and 'Pass' Zone Response
     passed_activities = mla_activities[(mla_activities['AC Name'].isin(filtered_ac_names)) & (mla_activities['Zone Response'] == 'Pass')]
 
     st.write(f"Showing data for Zone: {selected_zone} (AC Names: {', '.join(filtered_ac_names)})")
     
-    # st.markdown("## Escalation Summary")
-
-    # summary_data = {
-    #     "Total Escalations": filtered_activities['Escalation'].count(),
-    #     "Pass": filtered_activities[filtered_activities['Zone Response'] == 'Pass'].shape[0],
-    #     "Reject": filtered_activities[filtered_activities['Zone Response'] == 'Reject'].shape[0],
-    #     "Hold": filtered_activities[filtered_activities['Zone Response'] == 'Hold'].shape[0],
-    #     "Remaining": filtered_activities['Zone Response'].isna().sum()
-    # }
-
-    # st.write(pd.DataFrame([summary_data]))
+    
     ### Escalation Summary Table: Total Escalations & Status Breakdown
     st.markdown("## Escalation Summary")
 

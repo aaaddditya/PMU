@@ -351,17 +351,17 @@ def display_director_dashboard():
 
     st.write(f"Showing data for Zone: {selected_zone} (AC Names: {', '.join(filtered_ac_names)})")
     
-    st.markdown("## Escalation Summary")
+    # st.markdown("## Escalation Summary")
 
-    summary_data = {
-        "Total Escalations": filtered_activities['Escalation'].count(),
-        "Pass": filtered_activities[filtered_activities['Zone Response'] == 'Pass'].shape[0],
-        "Reject": filtered_activities[filtered_activities['Zone Response'] == 'Reject'].shape[0],
-        "Hold": filtered_activities[filtered_activities['Zone Response'] == 'Hold'].shape[0],
-        "Remaining": filtered_activities['Zone Response'].isna().sum()
-    }
+    # summary_data = {
+    #     "Total Escalations": filtered_activities['Escalation'].count(),
+    #     "Pass": filtered_activities[filtered_activities['Zone Response'] == 'Pass'].shape[0],
+    #     "Reject": filtered_activities[filtered_activities['Zone Response'] == 'Reject'].shape[0],
+    #     "Hold": filtered_activities[filtered_activities['Zone Response'] == 'Hold'].shape[0],
+    #     "Remaining": filtered_activities['Zone Response'].isna().sum()
+    # }
 
-    st.write(pd.DataFrame([summary_data]))
+    # st.write(pd.DataFrame([summary_data]))
     ### Escalation Summary Table: Total Escalations & Status Breakdown
     st.markdown("## Escalation Summary")
 

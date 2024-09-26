@@ -9,7 +9,6 @@ st.set_page_config(
     layout="wide",
 )
 
-
 def load_data(selected_date, selected_ac_name):
     file_name = f"{selected_date.strftime('%d%m%Y')}.csv"
     if os.path.exists(file_name):
@@ -59,7 +58,7 @@ def display_navbar():
     },
     "div": {
         "max-width": "32rem",
-    },
+    }, 
     "span": {
         "border-radius": "0.5rem",
         "color": "rgb(255,255,255)",
@@ -76,10 +75,9 @@ def display_navbar():
     },
 }
     # tab = st.sidebar.radio("Navigation", tabs)
-    tab=st_navbar(["Home", "Input", "Dashboard"], styles=styles)
+    tab=st_navbar(["Home", "Input", "Dashboard","Director Dashboard"], styles=styles)
     return tab
 
-# Input Form Functionality
 def input_form(df):
     st.title("Input Data for MLA Activities")
 
@@ -91,27 +89,10 @@ def input_form(df):
     ac_name = st.selectbox('AC Name', options=unique_ac_names)
 
     # Name of person
-    person_name = st.text_input('Name of Person')
-
-    # Alliance Party name (multi-select)
-    unique_party_names = df.iloc[:, 5].unique()
-    alliance_parties = st.multiselect('Alliance Party Name', options=unique_party_names)
-
-    # Alliance Party Activity details (one text box per selected Alliance party)
-    alliance_activity_details = {}
-    for party in alliance_parties:
-        alliance_activity_details[party] = st.text_area(f"Activity Details for {party}")
-
-    # Opposition Party name (multi-select)
-    opposition_parties = st.multiselect('Opposition Party Name', options=unique_party_names)
-
-    # Opposition Party Activity details (one text box per selected Opposition party)
-    opposition_activity_details = {}
-    for party in opposition_parties:
-        opposition_activity_details[party] = st.text_area(f"Opposition Details for {party}")
+    person_name = st.text_input('ACM Name')
 
     # Renamed Issues to Escalation dropdown with multiple selection
-    escalation_options = ['Disputes', 'Leader Activation', 'Joinings', 'Alliance Coordination', 'Organizational Issue']
+    escalation_options = ['Disputes', 'Leader Activation', 'Joinings', 'Alliance Coordination', 'Organizational Issue','Governance Issue','STC Team coordination with Party']
     selected_escalations = st.multiselect('Escalation', options=escalation_options)
 
     # For each Escalation, we ask for Escalation Detail, Escalation Level, and Issue Raised To
@@ -134,32 +115,13 @@ def input_form(df):
             'Escalation Detail': detail,
             'Escalation Level': level,
             'Issue Raised To': raised_to
+            
         })
-
-    # Narrative
-    narrative = st.text_area('Narrative')
 
     # Button to submit the data
     if st.button('Submit'):
-        # Find the max number of rows (max number of Alliance and Opposition parties)
-        max_rows = max(len(alliance_parties), len(opposition_parties))
-
-        # Prepare the data for the CSV
+        # Prepare the data for the CSV, one row for each escalation
         rows = []
-        for i in range(max_rows):
-            row = {
-                'Date': input_date,
-                'AC Name': ac_name,
-                'Person Name': person_name,
-                'Alliance Party': alliance_parties[i] if i < len(alliance_parties) else '',
-                'Alliance Activity': alliance_activity_details.get(alliance_parties[i], '') if i < len(alliance_parties) else '',
-                'Opposition Party': opposition_parties[i] if i < len(opposition_parties) else '',
-                'Opposition Activity': opposition_activity_details.get(opposition_parties[i], '') if i < len(opposition_parties) else '',
-                'Narrative': narrative
-            }
-            rows.append(row)
-
-        # Add Escalation details to rows
         for escalation_detail in escalation_details:
             row = {
                 'Date': input_date,
@@ -169,17 +131,20 @@ def input_form(df):
                 'Escalation Detail': escalation_detail['Escalation Detail'],
                 'Escalation Level': escalation_detail['Escalation Level'],
                 'Issue Raised To': escalation_detail['Issue Raised To'],
+                'Zone Response':'',
+                'Comment':'',
+                'Director Response':'',
+                'Director Comment':''
             }
             rows.append(row)
 
         # Convert rows into DataFrame
         df_new = pd.DataFrame(rows)
 
-        # Define today's date in DDMMYYYY format and prepare file name
-        today_str = date.today().strftime("%d%m%Y")
-        file_name = f"{today_str}.csv"
+        # Static file name for saving the data
+        file_name = "mla_activities.csv"
 
-        # Check if the CSV file for today already exists, and if so, append data
+        # Check if the CSV file already exists, and if so, append data
         if os.path.exists(file_name):
             df_existing = pd.read_csv(file_name)
             df_combined = pd.concat([df_existing, df_new], ignore_index=True)
@@ -189,83 +154,380 @@ def input_form(df):
 
         st.success(f"Data successfully saved to {file_name}")
 
+def load_ac_list():
+    return pd.read_csv('118_AC_list.csv')
+
+def load_mla_activities():
+    return pd.read_csv('mla_activities.csv')
+
+def update_mla_activities(df):
+    df.to_csv('mla_activities.csv', index=False)
+
 def display_dashboard():
-    st.title("AC Dashboard")
+    st.title("Field Team Dashboard")
 
-    # Date and AC Name input
-    selected_date = st.date_input('Select Date for Data', value=date.today())
+    # Load data
+    ac_list = load_ac_list()
+    mla_activities = load_mla_activities()
 
-    # Load unique AC Names from 118_AC_list.csv
-    ac_list = pd.read_csv('118_AC_list.csv')
-    unique_ac_names = np.sort(ac_list['AC Name'].unique())
+    # Zone Selection
+    unique_zones = ac_list['Zone'].unique()
+    selected_zone = st.selectbox('Select Zone', options=unique_zones)
+
+    # Filter AC Names based on selected Zone
+    filtered_ac_names = ac_list[ac_list['Zone'] == selected_zone]['AC Name'].unique()
+    st.write(f"Showing data for Zone: {selected_zone} (AC Names: {', '.join(filtered_ac_names)})")
+
+    # Filter mla_activities based on the selected Zone
+    filtered_activities = mla_activities[mla_activities['AC Name'].isin(filtered_ac_names)]
+
+    ### Summary Table: Total Escalations & Status Breakdown
+    st.markdown("## Escalation Summary")
+
+    summary_data = {
+        "Total Escalations": filtered_activities['Escalation'].count(),
+        "Pass": filtered_activities[filtered_activities['Zone Response'] == 'Pass'].shape[0],
+        "Reject": filtered_activities[filtered_activities['Zone Response'] == 'Reject'].shape[0],
+        "Hold": filtered_activities[filtered_activities['Zone Response'] == 'Hold'].shape[0],
+        "Remaining": filtered_activities['Zone Response'].isna().sum()
+    }
+
+    st.write(pd.DataFrame([summary_data]))
+
+    # Subcategories of escalations
+    categories = ['Disputes', 'Leader Activation', 'Joinings', 'Alliance Coordination', 'Organizational Issue','Governance Issue','STC Team coordination with Party']
+    category_summary = []
+
+    for category in categories:
+        cat_data = filtered_activities[filtered_activities['Escalation'] == category]
+        category_summary.append({
+            'Category': category,
+            'Total': cat_data.shape[0],
+            'Pass': cat_data[cat_data['Zone Response'] == 'Pass'].shape[0],
+            'Reject': cat_data[cat_data['Zone Response'] == 'Reject'].shape[0],
+            'Hold': cat_data[cat_data['Zone Response'] == 'Hold'].shape[0],
+            'Remaining': cat_data['Zone Response'].isna().sum()
+        })
+
+    st.table(pd.DataFrame(category_summary))
+
+    ### Alert Level Table
+    st.markdown("## Alert Level Summary")
+
+    alert_levels = ['Alert', 'Mid Alert', 'Normal']
+    alert_summary = []
+
+    for level in alert_levels:
+        level_data = filtered_activities[filtered_activities['Escalation Level'] == level]
+        alert_summary.append({
+            'Level': level,
+            'Total': level_data.shape[0],
+            'Pass': level_data[level_data['Zone Response'] == 'Pass'].shape[0],
+            'Reject': level_data[level_data['Zone Response'] == 'Reject'].shape[0],
+            'Hold': level_data[level_data['Zone Response'] == 'Hold'].shape[0],
+            'Remaining': level_data['Zone Response'].isna().sum()
+        })
+
+    st.table(pd.DataFrame(alert_summary))
+
+    ### Database Section in Table Format
+    ### Database Section in Table Format
+    st.markdown("## Database")
+    if not filtered_activities.empty:
+        # Initialize empty values for 'Zone Response' and 'Comment' if not present
+        filtered_activities['Zone Response'] = filtered_activities['Zone Response'].fillna('')
+        filtered_activities['Comment'] = filtered_activities['Comment'].fillna('')
+
+        # Create a list to hold updated rows
+        updated_rows = []
+
+        # Display the table headers with aligned columns
+        st.markdown(
+            """
+            <style>
+            .align-table th {
+                text-align: left;
+                font-weight: bold;
+                padding: 4px 8px;
+            }
+            .align-table td {
+                padding: 4px 8px;
+            }
+            </style>
+            """, 
+            unsafe_allow_html=True
+        )
+        
+        # Create table headers
+        st.markdown(
+            """
+            <table class="align-table">
+                <thead>
+                    <tr>
+                        <th>AC Name</th>
+                        <th>Escalation</th>
+                        <th>Escalation Detail</th>
+                        <th>Escalation Level</th>
+                        <th>Zone Response</th>
+                        <th>Comment</th>
+                        <th>Issue Raised To</th>
+                    </tr>
+                </thead>
+                <tbody>
+            """, 
+            unsafe_allow_html=True
+        )
+
+        # Loop through each row and create the table body with inputs
+        for idx, row in filtered_activities.iterrows():
+            col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 1, 1.5, 1, 1, 1.5, 1])
+            Director_Response, Director_Comment=row['Director Response'],row['Director Comment']
+            # Static columns
+            col1.write(row['AC Name'])
+            col2.write(row['Escalation'])
+            col3.write(row['Escalation Detail'])
+            col4.write(row['Escalation Level'])
+
+            # Editable 'Zone Response' Dropdown
+            new_zone_response = col5.selectbox(
+                '',
+                options=[row['Zone Response'], 'Pass', 'Reject', 'Hold'],
+                index=0 if row['Zone Response'] == '' else ['Pass', 'Reject', 'Hold'].index(row['Zone Response']),
+                key=f'zone_response_{idx}'
+            )
+
+            # Editable 'Comment' Text Input
+            new_comment = col6.text_input(
+                '',
+                value=row['Comment'],
+                key=f'comment_{idx}'
+            )
+
+            # Static column
+            col7.write(row['Issue Raised To'])
+
+            # Append updated rows back to the dataframe
+            updated_rows.append({
+                'AC Name': row['AC Name'],
+                'Escalation': row['Escalation'],
+                'Escalation Detail': row['Escalation Detail'],
+                'Escalation Level': row['Escalation Level'],
+                'Zone Response': new_zone_response,
+                'Comment': new_comment,
+                'Issue Raised To': row['Issue Raised To'],
+                'Director Response': Director_Response,
+                'Director Comment': Director_Comment
+            })
+
+        st.markdown("</tbody></table>", unsafe_allow_html=True)
+
+        # Convert updated rows back into a DataFrame
+        df_updated = pd.DataFrame(updated_rows)
+
+        # Save button to update the CSV file
+        if st.button("Update Database"):
+            update_mla_activities(df_updated)
+            st.success("Database updated successfully!")
+
+    else:
+        st.warning("No data available for the selected Zone.")
+
+def display_director_dashboard():
+    st.title("Director Dashboard")
+
+    # Load data
+    ac_list = load_ac_list()
+    mla_activities = load_mla_activities()
+
+    # Zone Selection
+    unique_zones = ac_list['Zone'].unique()
+    selected_zone = st.selectbox('Select Zone', options=unique_zones)
+
+    # Filter AC Names based on selected Zone
+    filtered_ac_names = ac_list[ac_list['Zone'] == selected_zone]['AC Name'].unique()
+
+    # Filter mla_activities based on the selected Zone and 'Pass' Zone Response
+    passed_activities = mla_activities[(mla_activities['AC Name'].isin(filtered_ac_names)) & (mla_activities['Zone Response'] == 'Pass')]
+
+    st.write(f"Showing data for Zone: {selected_zone} (AC Names: {', '.join(filtered_ac_names)})")
+    
+    st.markdown("## Escalation Summary")
+
+    summary_data = {
+        "Total Escalations": filtered_activities['Escalation'].count(),
+        "Pass": filtered_activities[filtered_activities['Zone Response'] == 'Pass'].shape[0],
+        "Reject": filtered_activities[filtered_activities['Zone Response'] == 'Reject'].shape[0],
+        "Hold": filtered_activities[filtered_activities['Zone Response'] == 'Hold'].shape[0],
+        "Remaining": filtered_activities['Zone Response'].isna().sum()
+    }
+
+    st.write(pd.DataFrame([summary_data]))
+    ### Escalation Summary Table: Total Escalations & Status Breakdown
+    st.markdown("## Escalation Summary")
+
+    summary_data = {
+        "Total Escalations": passed_activities['Escalation'].count(),
+        "Pass": passed_activities[passed_activities['Director Response'] == 'Pass'].shape[0],
+        "Reject": passed_activities[passed_activities['Director Response'] == 'Reject'].shape[0],
+        "Hold": passed_activities[passed_activities['Director Response'] == 'Hold'].shape[0],
+        "Remaining": passed_activities['Director Response'].isna().sum()
+    }
+
+    st.write(pd.DataFrame([summary_data]))
+
+    # Subcategories of escalations
+    categories = ['Disputes', 'Leader Activation', 'Joinings', 'Alliance Coordination', 'Organizational Issue', 'Governance Issue', 'STC Team coordination with Party']
+    category_summary = []
+
+    for category in categories:
+        cat_data = passed_activities[passed_activities['Escalation'] == category]
+        category_summary.append({
+            'Category': category,
+            'Total': cat_data.shape[0],
+            'Pass': cat_data[cat_data['Director Response'] == 'Pass'].shape[0],
+            'Reject': cat_data[cat_data['Director Response'] == 'Reject'].shape[0],
+            'Hold': cat_data[cat_data['Director Response'] == 'Hold'].shape[0],
+            'Remaining': cat_data['Director Response'].isna().sum()
+        })
+
+    st.table(pd.DataFrame(category_summary))
+
+    ### Alert Level Table
+    st.markdown("## Alert Level Summary")
+
+    alert_levels = ['Alert', 'Mid Alert', 'Normal']
+    alert_summary = []
+
+    for level in alert_levels:
+        level_data = passed_activities[passed_activities['Escalation Level'] == level]
+        alert_summary.append({
+            'Level': level,
+            'Total': level_data.shape[0],
+            'Pass': level_data[level_data['Director Response'] == 'Pass'].shape[0],
+            'Reject': level_data[level_data['Director Response'] == 'Reject'].shape[0],
+            'Hold': level_data[level_data['Director Response'] == 'Hold'].shape[0],
+            'Remaining': level_data['Director Response'].isna().sum()
+        })
+
+    st.table(pd.DataFrame(alert_summary))
+
+    # Add a dropdown to select an AC Name from the filtered activities in the selected Zone
+    st.markdown("## Select AC Name")
+    unique_ac_names = passed_activities['AC Name'].unique()
     selected_ac_name = st.selectbox('Select AC Name', options=unique_ac_names)
 
-    # Fetch and display AC details from 118_AC_list.csv
-    ac_details = load_ac_data(selected_ac_name)
-    if ac_details is not None:
-        st.subheader(f"Zone: {ac_details['Zone']}")
+    # Filter data based on the selected AC Name
+    filtered_ac_activities = passed_activities[passed_activities['AC Name'] == selected_ac_name]
 
-        col1, col2 ,col3 = st.columns(3)
-        col1.markdown(f'<p style="font-family:sans-serif;font-size:20px;font-weight:700;">District: {ac_details["District"]}</p>', unsafe_allow_html=True)
-        col2.markdown(f'<p style="font-family:sans-serif;font-size:20px;font-weight:bold;">AC Name: {ac_details["AC Name"]}</p>', unsafe_allow_html=True)
-        col3.markdown(f'<p style="font-family:sans-serif;font-size:20px;font-weight:bold;">AC No: {ac_details["AC No"]}</p>', unsafe_allow_html=True)
+    # Display filtered data
+    st.markdown(f"## Database for AC: {selected_ac_name}")
 
-        col1, col2, col3, col4, col5 = st.columns(5)
-        col1.markdown(f'<p style="font-family:sans-serif;font-size:20px;font-weight:bold;">Current MLA: {ac_details["Current MLA"]}</p>', unsafe_allow_html=True)
-        col2.markdown(f'<p style="font-family:sans-serif;font-size:20px;font-weight:bold;">Party: {ac_details["Party"]}</p>', unsafe_allow_html=True)
-        col3.markdown(f'<p style="font-family:sans-serif;font-size:20px;font-weight:bold;">Margin 2019: {ac_details["Margin_2019"]}</p>', unsafe_allow_html=True)
-        col4.markdown(f'<p style="font-family:sans-serif;font-size:20px;font-weight:bold;">GE2024 Status: {ac_details["GE2024 Status"]}</p>', unsafe_allow_html=True)
-        col5.markdown(f'<p style="font-family:sans-serif;font-size:20px;font-weight:bold;">Margin 2024: {ac_details["Margin_2024"]}</p>', unsafe_allow_html=True)
+    if not filtered_ac_activities.empty:
+        # Initialize empty values for 'Director Response' and 'Director Comment' if not present
+        filtered_ac_activities['Director Response'] = filtered_ac_activities['Director Response'].fillna('')
+        filtered_ac_activities['Director Comment'] = filtered_ac_activities['Director Comment'].fillna('')
 
-        st.write("---")
+        # Create a list to hold updated rows
+        updated_rows = []
 
-        # Fetch data from DDMMYYYY.csv
-        ddmm_data = load_ddmm_data(selected_date, selected_ac_name)
-        if ddmm_data is not None and not ddmm_data.empty:
-            # Iterate over the rows in the CSV data
-            for index, row in ddmm_data.iterrows():
-                # Display Date
-                if type(row['Escalation'])==str:
-                    if row['Escalation Update']!='Resolved':
-                        st.markdown(f"**Date:** {row['Date']}")
+        # Display the table headers with aligned columns
+        st.markdown(
+            """
+            <style>
+            .align-table th {
+                text-align: left;
+                font-weight: bold;
+                padding: 4px 8px;
+            }
+            .align-table td {
+                padding: 4px 8px;
+            }
+            </style>
+            """, 
+            unsafe_allow_html=True
+        )
+        
+        # Create table headers
+        st.markdown(
+            """
+            <table class="align-table">
+                <thead>
+                    <tr>
+                        <th>AC Name</th>
+                        <th>Escalation</th>
+                        <th>Escalation Detail</th>
+                        <th>Escalation Level</th>
+                        <th>Zone Response</th>
+                        <th>Zone Comment</th>
+                        <th>Director Response</th>
+                        <th>Director Comment</th>
+                        <th>Issue Raised To</th>
+                    </tr>
+                </thead>
+                <tbody>
+            """, 
+            unsafe_allow_html=True
+        )
 
-                        # Display Escalation details in a well-structured format
-                        st.markdown(f"""
-                        <div style="border: 1px solid #e0e0e0; padding: 10px; border-radius: 5px;">
-                            <p><strong>Escalation:</strong> {row['Escalation']}</p>
-                            <p><strong>Escalation Detail:</strong> {row['Escalation Detail']}</p>
-                            <p><strong>Escalation Level:</strong> {row['Escalation Level']}</p>
-                            <p><strong>Issue Raised To:</strong> {row['Issue Raised To']}</p>
-                        </div>
-                        """, unsafe_allow_html=True)
+        # Loop through each row and create the table body with inputs
+        for idx, row in filtered_ac_activities.iterrows():
+            col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns([1, 1, 1.5, 1, 1, 1.5, 1, 1.5, 1])
 
-                        # Provide a dropdown for updating the Escalation status
-                        escalation_update = st.selectbox(
-                            f"Escalation Update for {row['Escalation']}", 
-                            options=['Pending', 'Resolved'],
-                            key=f"update_{index}"
-                        )
+            # Static columns
+            col1.write(row['AC Name'])
+            col2.write(row['Escalation'])
+            col3.write(row['Escalation Detail'])
+            col4.write(row['Escalation Level'])
+            col5.write(row['Zone Response'])  # Static Zone Response
+            col6.write(row['Comment'])        # Static Zone Comment
 
-                        # Add a submit button to update the status in the CSV
-                        if st.button(f'Update Status for {row["Escalation"]}', key=f'button_{index}'):
-                            # Add Escalation Update to the dataframe
-                            ddmm_data.at[index, 'Escalation Update'] = escalation_update
+            # Editable 'Director Response' Dropdown
+            new_director_response = col7.selectbox(
+                '',
+                options=['', 'Pass', 'Reject', 'Hold'],
+                index=0 if row['Director Response'] == '' else ['Pass', 'Reject', 'Hold'].index(row['Director Response']),
+                key=f'director_response_{idx}'
+            )
 
-                            # Save the updated data back to the CSV
-                            today_str = selected_date.strftime("%d%m%Y")
-                            file_name = f"{today_str}.csv"
-                            ddmm_data.to_csv(file_name, index=False)
+            # Editable 'Director Comment' Text Input
+            new_director_comment = col8.text_input(
+                '',
+                value=row['Director Comment'],
+                key=f'director_comment_{idx}'
+            )
 
-                            st.success(f"Escalation status for {row['Escalation']} updated to {escalation_update} in {file_name}")
+            # Static column for 'Issue Raised To'
+            col9.write(row['Issue Raised To'])
 
-                        st.write("---")
-        else:
-            st.warning(f"No data available for the selected date and AC Name.")
-    
+            # Append updated rows back to the dataframe
+            updated_rows.append({
+                'AC Name': row['AC Name'],
+                'Escalation': row['Escalation'],
+                'Escalation Detail': row['Escalation Detail'],
+                'Escalation Level': row['Escalation Level'],
+                'Zone Response': row['Zone Response'],
+                'Comment': row['Comment'],
+                'Director Response': new_director_response,
+                'Director Comment': new_director_comment,
+                'Issue Raised To': row['Issue Raised To']
+            })
+
+        st.markdown("</tbody></table>", unsafe_allow_html=True)
+
+        # Convert updated rows back into a DataFrame
+        df_updated = pd.DataFrame(updated_rows)
+
+        # Save button to update the CSV file
+        if st.button("Update Director Responses"):
+            update_mla_activities(df_updated)
+            st.success("Director responses updated successfully!")
+
     else:
-        st.error(f"No data found for AC Name: {selected_ac_name}")
+        st.warning(f"No data available for the selected AC Name: {selected_ac_name}.")
 
-    
+# if __name__ == "__main__":
+#     display_dashboard()
+
 # Home Page Functionality
 def home_page():
     st.title("Home")
@@ -292,6 +554,9 @@ def main():
     # Dashboard tab
     elif tab == "Dashboard":
         display_dashboard()
+
+    elif tab=="Director Dashboard":
+        display_director_dashboard()    
 
 if __name__ == "__main__":
     main()

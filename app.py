@@ -660,7 +660,7 @@ def home_page():
     # Blank screen for a moment (before the text appears)
 
     # Wait for the blank screen (optional, if you want a pause before the text)
-    time.sleep(1)
+    time.sleep(0)
 
     # Display Home page text with fade-in animation
     st.markdown(

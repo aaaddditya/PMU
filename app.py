@@ -4,10 +4,72 @@ import os
 from datetime import date
 import numpy as np
 from streamlit_navigation_bar import st_navbar
+from PIL import Image
+import time
 
 st.set_page_config(
     layout="wide",
 )
+# st._config.set_option(backgroundColor:'')
+
+def load_user_data():
+    return pd.read_csv('userdata.csv')
+
+# Function to check login credentials
+def authenticate_user(email, password, user_data):
+    user_row = user_data[(user_data['email'] == email) & (user_data['password'] == password)]
+    if not user_row.empty:
+        return user_row.iloc[0]['userName'], user_row.iloc[0]['roles']
+    return None, None
+
+if 'logged_in' not in st.session_state:
+    st.session_state['logged_in'] = False
+    st.session_state['userName'] = ''
+    st.session_state['role'] = ''
+
+def init_session_state():
+    if 'logged_in' not in st.session_state:
+        st.session_state['logged_in'] = False
+    if 'user' not in st.session_state:
+        st.session_state['user'] = ''
+    if 'role' not in st.session_state:
+        st.session_state['role'] = ''
+
+def login_page():
+    st.markdown("<h1 style='color:#0897ff;text-align:center'>2024 AE Escalation</h1>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align:center'>Login Page</h3>", unsafe_allow_html=True)
+
+    # Create a rectangular box for the login form
+    with st.container():
+        # st.markdown(
+        #     """
+        #     <div style="border: 2px solid #0897ff; border-radius: 10px; padding: 20px; width: 300px; margin: auto;">
+        #     """, unsafe_allow_html=True
+        # )
+        email = st.text_input("Email", key='email', max_chars=50, placeholder="Enter your email")
+        password = st.text_input("Password", type="password", key='password', placeholder="Enter your password")
+
+        if st.button("Login"):
+            try:
+                password = int(password)
+            except ValueError:
+                st.error("Password must be a number.")
+                return
+            
+            user_data = load_user_data()
+            userName, role = authenticate_user(email, password, user_data)
+            if userName:
+                st.session_state['logged_in'] = True
+                st.session_state['userName'] = userName
+                st.session_state['role'] = role
+                st.success(f"Welcome, {userName}!")
+            else:
+                st.error("Invalid email or password")
+        
+        st.markdown("</div>", unsafe_allow_html=True)
+
+
+# Function for Home page
 
 def load_data(selected_date, selected_ac_name):
     file_name = f"{selected_date.strftime('%d%m%Y')}.csv"
@@ -50,7 +112,7 @@ def load_ddmm_data(selected_date, ac_name):
 # Navbar Functionality (Tab navigation)
 def display_navbar():
     # Define the tabs
-    tabs = ["Home", "Input", "Dashboard"]
+    # tabs = ["Home", "Input", "Dashboard", "Director Dashboard"]
     styles = {
     "nav": {
         "background-color": "rgb(17, 45, 78)",
@@ -75,11 +137,21 @@ def display_navbar():
     },
 }
     # tab = st.sidebar.radio("Navigation", tabs)
-    tab=st_navbar(["Home", "Input", "Dashboard","Director Dashboard"], styles=styles)
+    if st.session_state['role'] == "user":
+        tab=st_navbar(["Home", "Input","logout"], styles=styles)
+    elif st.session_state['role'] == "user1":   
+        tab=st_navbar(["Home", "Dashboard","logout"], styles=styles)
+    elif st.session_state['role'] == "user2": 
+        tab=st_navbar(["Home", "Director Dashboard","logout"], styles=styles)
+    elif st.session_state['role'] == "user3":    
+        tab=st_navbar(["Home", "Input","Dashboard","Director Dashboard","logout"], styles=styles)
+    else:
+        tab=st_navbar(["Home"], styles=styles)
+    # st.write(st.session_state)   
     return tab
 
 def input_form(df):
-    st.title("Input Data for MLA Activities")
+    st.title("Input Data for AC Escalation")
 
     # Date (default value is today)
     input_date = st.date_input('Date', value=date.today())
@@ -104,7 +176,7 @@ def input_form(df):
         detail = st.text_area(f"Escalation Detail for {escalation}")
         
         # Escalation Level
-        level = st.selectbox(f'Escalation Level for {escalation}', options=['Alert', 'Mid Alert', 'Normal'])
+        level = st.selectbox(f'Escalation Level for {escalation}', options=['Low', 'Medium', 'High'])
         
         # Issue Raised To
         raised_to = st.selectbox(f'Issue Raised to for {escalation}', options=['Anurag', 'Anant', 'Alimpan Banerjee'])
@@ -526,38 +598,141 @@ def display_director_dashboard():
     else:
         st.warning(f"No data available for the selected AC Name: {selected_ac_name}.")
 
+def logout():
+    st.session_state['logged_in'] = False
+    st.session_state['user'] = ''
+    st.session_state['role'] = ''
+    st.rerun()
+
+# if st.session_state['logged_in']:
+#     logout_button=st.button("logout")
+
+#     if logout_button:
+#         logout()
+
+
+def render_navigation():
+    if st.session_state['role'] == 'user':
+        st.sidebar.button("Home", on_click=home_page)
+        st.sidebar.button("Input", on_click=input_form)
+    elif st.session_state['role'] == 'user1':
+        st.sidebar.button("Home", on_click=home_page)
+        st.sidebar.button("Dashboard", on_click=display_dashboard)
+    elif st.session_state['role'] == 'user2':
+        st.sidebar.button("Home", on_click=home_page)
+        st.sidebar.button("Director Dashboard", on_click=display_director_dashboard)
+    elif st.session_state['role'] == 'user3':
+        st.sidebar.button("Home", on_click=home_page)
+        st.sidebar.button("Input", on_click=input_form)
+        st.sidebar.button("Dashboard", on_click=display_dashboard)
+        st.sidebar.button("Director Dashboard", on_click=display_director_dashboard)
+
+def home_page():
+    st.markdown("<div class='blank-screen'></div>", unsafe_allow_html=True)
+    # Add custom CSS for fade-in text animation from a blank screen
+    st.markdown(
+        """
+        <style>
+        /* Blank white screen initially */
+        .blank-screen {
+            background-color: white;
+            height: 10vh;  /* Adjust height to cover the required area */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Fade-in effect for the text */
+        .fade-in-text {
+            opacity: 0;
+            animation: fadeInText 3s ease-in forwards; /* 3-second fade-in animation */
+        }
+
+        @keyframes fadeInText {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # Blank screen for a moment (before the text appears)
+
+    # Wait for the blank screen (optional, if you want a pause before the text)
+    time.sleep(1)
+
+    # Display Home page text with fade-in animation
+    st.markdown(
+        f"""
+        <div class="fade-in-text" style="text-align: center; margin-top: -50px;">
+            <h1>Home</h1>
+            <h2><strong>Welcome, {st.session_state['userName']}</strong></h2>
+            <p>Welcome to the 2024 Maharashtra Assembly Election Dashboard.</p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+
+if not st.session_state['logged_in']:
+    login_page()  # Show login page if not logged in
+# else:
+#     # render_navigation()  # Show the navigation bar after login
+#     home_page()      
 # if __name__ == "__main__":
 #     display_dashboard()
 
 # Home Page Functionality
-def home_page():
-    st.title("Home")
-    st.write("Welcome to the MLA Activities Dashboard! Use the navigation to input data or view the dashboard.")
     # new_title = '<p style="font-family:sans-serif; color:Green; font-size: 42px;">Aditya</p>'
     # st.markdown(new_title, unsafe_allow_html=True)
 # Main Streamlit App
+
 def main():
     # Display the navigation bar and switch between tabs
     # page = st_navbar(["Home", "Input", "Dashboard"])
-    tab = display_navbar()
+    init_session_state() 
+    if st.session_state['logged_in']:
 
-    # Load data for input formstreamlit 
-    df = pd.read_csv('288_MLA.csv')
+         
+        
+        tab = display_navbar()
+        # st.write(st.session_state)
+        # Load data for input formstreamlit 
+        df = pd.read_csv('288_MLA.csv')
 
-    # Home tab
-    if tab == "Home":
-        home_page()
+        # if 'logged_in' not in st.session_state:
+        #     st.session_state['logged_in'] = False
 
-    # Input tab
-    elif tab == "Input":
-        input_form(df)
+        # if not st.session_state['logged_in']:
+        #     login()
+        # else:
+        #     st.sidebar.title("Navigation")
+        #     role_based_menu()
 
-    # Dashboard tab
-    elif tab == "Dashboard":
-        display_dashboard()
+        #     if st.sidebar.button("Logout"):
+        #         logout()
 
-    elif tab=="Director Dashboard":
-        display_director_dashboard()    
+            # Page Rendering
+            # page = st.sidebar.radio("Select Page", ['Home', 'Input Page', 'Dashboard', 'Director Dashboard'])
+
+            
+        # Home tab
+        if tab == "Home":
+            home_page()
+
+        # Input tab
+        elif tab == 'Input' and (st.session_state['role'] in ['user', 'user3']):
+            input_form(df)
+
+        # Dashboard tab
+        elif tab == 'Dashboard' and (st.session_state['role'] in ['user1', 'user3']):
+            display_dashboard()
+
+        elif tab=='Director Dashboard' and (st.session_state['role'] in ['user2', 'user3']):
+            display_director_dashboard()    
+        elif tab=="logout":
+            logout()    
 
 if __name__ == "__main__":
     main()

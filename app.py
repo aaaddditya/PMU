@@ -34,6 +34,13 @@ def init_session_state():
         st.session_state['user'] = ''
     if 'role' not in st.session_state:
         st.session_state['role'] = ''
+    if 'mobile_view' not in st.session_state:
+        st.session_state['mobile_view'] = False
+def change_mobile_view():
+    if st.session_state['mobile_view']:
+        st.session_state['mobile_view']=False
+    else:
+        st.session_state['mobile_view']=True
 
 def login_page():
     st.markdown("<h1 style='color:#0897ff;text-align:center'>2024 AE Escalation</h1>", unsafe_allow_html=True)
@@ -305,6 +312,12 @@ def display_dashboard():
     ### Database Section in Table Format
     ### Database Section in Table Format
     st.markdown("## Database")
+    st.checkbox(
+        "Mobile View",
+        # value=st.session_state.mobile_view,
+        # key='mobile_view',
+        on_change=change_mobile_view  # Call the function when the checkbox is changed
+)
     if not filtered_activities.empty:
         # Initialize empty values for 'Zone Response' and 'Comment' if not present
         filtered_activities['Zone Response'] = filtered_activities['Zone Response'].fillna('')
@@ -331,52 +344,90 @@ def display_dashboard():
         )
         
         # Create table headers
-        st.markdown(
-            """
-            <table class="align-table">
-                <thead>
-                    <tr>
-                        <th>AC Name</th>
-                        <th>Escalation</th>
-                        <th>Escalation Detail</th>
-                        <th>Escalation Level</th>
-                        <th>Zone Response</th>
-                        <th>Comment</th>
-                        <th>Issue Raised To</th>
-                    </tr>
-                </thead>
-                <tbody>
-            """, 
-            unsafe_allow_html=True
-        )
-
-        # Loop through each row and create the table body with inputs
+        # st.markdown(
+        #     """
+        #     <table class="align-table">
+        #         <thead>
+        #             <tr>
+        #                 <th>AC Name</th>
+        #                 <th>Escalation</th>
+        #                 <th>Escalation Detail</th>
+        #                 <th>Escalation Level</th>
+        #                 <th>Zone Response</th>
+        #                 <th>Comment</th>
+        #                 <th>Issue Raised To</th>
+        #             </tr>
+        #         </thead>
+        #         <tbody>
+        #     """, 
+        #     unsafe_allow_html=True
+        # )
+        flag = True
+        updated_rows = []
+        mobile_view=True
         for idx, row in filtered_activities.iterrows():
-            col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 1, 1.5, 1, 1, 1.5, 1])
-            Director_Response, Director_Comment=row['Director Response'],row['Director Comment']
-            # Static columns
-            col1.write(row['AC Name'])
-            col2.write(row['Escalation'])
-            col3.write(row['Escalation Detail'])
-            col4.write(row['Escalation Level'])
+            # Dynamically adjust columns for desktop vs mobile view
+            if  st.session_state['mobile_view']:
+                # Mobile view: use fewer columns and show details in an expander
+                with st.expander(f"{row['AC Name']} - Escalation Details"):
+                    col1, col2 = st.columns([1, 2])
+                    col1.write(f"Escalation: {row['Escalation']}")
+                    col2.write(f"Level: {row['Escalation Level']}")
+                    
+                    st.write(f"Escalation Detail: {row['Escalation Detail']}")
+                    st.write(f"Issue Raised To: {row['Issue Raised To']}")
 
-            # Editable 'Zone Response' Dropdown
-            new_zone_response = col5.selectbox(
-                '',
-                options=[row['Zone Response'], 'Pass', 'Reject', 'Hold'],
-                index=0 if row['Zone Response'] == '' else ['Pass', 'Reject', 'Hold'].index(row['Zone Response']),
-                key=f'zone_response_{idx}'
-            )
+                    # Editable Zone Response and Comment in mobile view
+                    new_zone_response = st.selectbox(
+                        'Zone Response',
+                        options=[row['Zone Response'], 'Pass', 'Reject', 'Hold'],
+                        index=0 if row['Zone Response'] == '' else ['Pass', 'Reject', 'Hold'].index(row['Zone Response']),
+                        key=f'zone_response_{idx}'
+                    )
+                    
+                    new_comment = st.text_input(
+                        'Comment',
+                        value=row['Comment'],
+                        key=f'comment_{idx}'
+                    )
 
-            # Editable 'Comment' Text Input
-            new_comment = col6.text_input(
-                '',
-                value=row['Comment'],
-                key=f'comment_{idx}'
-            )
+            else:
+                # Desktop view: retain multiple columns for richer details
+                col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 1, 1.5, 1, 1, 1.5, 1])
 
-            # Static column
-            col7.write(row['Issue Raised To'])
+                # Static columns
+                if flag:
+                    col1.write('AC Name')
+                    col2.write('Escalation')
+                    col3.write('Escalation Detail')
+                    col4.write('Escalation Level')
+                    col5.write('Zone Response')
+                    col6.write('Comment')
+                    col7.write('Issue Raised To')
+                    flag = False
+
+                col1.write(row['AC Name'])
+                col2.write(row['Escalation'])
+                col3.write(row['Escalation Detail'])
+                col4.write(row['Escalation Level'])
+
+                # Editable Zone Response Dropdown for desktop view
+                new_zone_response = col5.selectbox(
+                    '',
+                    options=[row['Zone Response'], 'Pass', 'Reject', 'Hold'],
+                    index=0 if row['Zone Response'] == '' else ['Pass', 'Reject', 'Hold'].index(row['Zone Response']),
+                    key=f'zone_response_{idx}'
+                )
+
+                # Editable Comment Text Input
+                new_comment = col6.text_input(
+                    '',
+                    value=row['Comment'],
+                    key=f'comment_{idx}'
+                )
+
+                # Static column for Issue Raised To
+                col7.write(row['Issue Raised To'])
 
             # Append updated rows back to the dataframe
             updated_rows.append({
@@ -387,8 +438,8 @@ def display_dashboard():
                 'Zone Response': new_zone_response,
                 'Comment': new_comment,
                 'Issue Raised To': row['Issue Raised To'],
-                'Director Response': Director_Response,
-                'Director Comment': Director_Comment
+                'Director Response': row['Director Response'],
+                'Director Comment': row['Director Comment']
             })
 
         st.markdown("</tbody></table>", unsafe_allow_html=True)
@@ -493,10 +544,16 @@ def display_director_dashboard():
     filtered_ac_activities = passed_activities[passed_activities['AC Name'] == selected_ac_name]
 
     # Display filtered data
-    st.markdown(f"## Database for AC: {selected_ac_name}")
 
+    st.markdown(f"## Database for AC: {selected_ac_name}")
+    st.checkbox(
+    "Mobile View",
+    # value=st.session_state.mobile_view,
+    # key='mobile_view',
+    on_change=change_mobile_view  # Call the function when the checkbox is changed
+)
     if not filtered_ac_activities.empty:
-        # Initialize empty values for 'Director Response' and 'Director Comment' if not present
+    # Initialize empty values for 'Director Response' and 'Director Comment' if not present
         filtered_ac_activities['Director Response'] = filtered_ac_activities['Director Response'].fillna('')
         filtered_ac_activities['Director Comment'] = filtered_ac_activities['Director Comment'].fillna('')
 
@@ -519,73 +576,106 @@ def display_director_dashboard():
             """, 
             unsafe_allow_html=True
         )
-        
-        # Create table headers
-        st.markdown(
-            """
-            <table class="align-table">
-                <thead>
-                    <tr>
-                        <th>AC Name</th>
-                        <th>Escalation</th>
-                        <th>Escalation Detail</th>
-                        <th>Escalation Level</th>
-                        <th>Zone Response</th>
-                        <th>Zone Comment</th>
-                        <th>Director Response</th>
-                        <th>Director Comment</th>
-                        <th>Issue Raised To</th>
-                    </tr>
-                </thead>
-                <tbody>
-            """, 
-            unsafe_allow_html=True
-        )
 
-        # Loop through each row and create the table body with inputs
-        for idx, row in filtered_ac_activities.iterrows():
-            col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns([1, 1, 1.5, 1, 1, 1.5, 1, 1.5, 1])
+        if not st.session_state.mobile_view:
+            flag=True
+            # Loop through each row and create the table body with inputs for desktop view
+            for idx, row in filtered_ac_activities.iterrows():
+                col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns([1, 1, 1.5, 1, 1, 1.5, 1, 1.5, 1])
 
-            # Static columns
-            col1.write(row['AC Name'])
-            col2.write(row['Escalation'])
-            col3.write(row['Escalation Detail'])
-            col4.write(row['Escalation Level'])
-            col5.write(row['Zone Response'])  # Static Zone Response
-            col6.write(row['Comment'])        # Static Zone Comment
+                if flag:
+                    col1.write('AC Name')
+                    col2.write('Escalation')
+                    col3.write('Escalation Detail')
+                    col4.write('Escalation Level')
+                    col5.write('Zone Response')
+                    col6.write('Comment')
+                    col7.write('Director Response')
+                    col8.write('Director Comment')
+                    col9.write('Issue Raised To')
+                    flag = False
 
-            # Editable 'Director Response' Dropdown
-            new_director_response = col7.selectbox(
-                '',
-                options=['', 'Pass', 'Reject', 'Hold'],
-                index=0 if row['Director Response'] == '' else ['Pass', 'Reject', 'Hold'].index(row['Director Response']),
-                key=f'director_response_{idx}'
-            )
+                # Static columns
+                col1.write(row['AC Name'])
+                col2.write(row['Escalation'])
+                col3.write(row['Escalation Detail'])
+                col4.write(row['Escalation Level'])
+                col5.write(row['Zone Response'])  # Static Zone Response
+                col6.write(row['Comment'])        # Static Zone Comment
 
-            # Editable 'Director Comment' Text Input
-            new_director_comment = col8.text_input(
-                '',
-                value=row['Director Comment'],
-                key=f'director_comment_{idx}'
-            )
+                # Editable 'Director Response' Dropdown
+                new_director_response = col7.selectbox(
+                    '',
+                    options=[row['Director Response'], 'Pass', 'Reject', 'Hold'],
+                    index=0 if row['Director Response'] == '' else ['Pass', 'Reject', 'Hold'].index(row['Director Response']),
+                    key=f'director_response_{idx}'
+                )
 
-            # Static column for 'Issue Raised To'
-            col9.write(row['Issue Raised To'])
+                # Editable 'Director Comment' Text Input
+                new_director_comment = col8.text_input(
+                    '',
+                    value=row['Director Comment'],
+                    key=f'director_comment_{idx}'
+                )
 
-            # Append updated rows back to the dataframe
-            updated_rows.append({
-                'AC Name': row['AC Name'],
-                'Escalation': row['Escalation'],
-                'Escalation Detail': row['Escalation Detail'],
-                'Escalation Level': row['Escalation Level'],
-                'Zone Response': row['Zone Response'],
-                'Comment': row['Comment'],
-                'Director Response': new_director_response,
-                'Director Comment': new_director_comment,
-                'Issue Raised To': row['Issue Raised To']
-            })
+                # Static column for 'Issue Raised To'
+                col9.write(row['Issue Raised To'])
 
-        st.markdown("</tbody></table>", unsafe_allow_html=True)
+                # Append updated rows back to the dataframe
+                updated_rows.append({
+                    'AC Name': row['AC Name'],
+                    'Escalation': row['Escalation'],
+                    'Escalation Detail': row['Escalation Detail'],
+                    'Escalation Level': row['Escalation Level'],
+                    'Zone Response': row['Zone Response'],
+                    'Comment': row['Comment'],
+                    'Director Response': new_director_response,
+                    'Director Comment': new_director_comment,
+                    'Issue Raised To': row['Issue Raised To']
+                })
+
+            st.markdown("</tbody></table>", unsafe_allow_html=True)
+
+        else:
+            
+            mobile_view=True
+            # Mobile view: use fewer columns and show details in expanders
+            for idx, row in filtered_ac_activities.iterrows():
+                if  st.session_state['mobile_view']:
+                    with st.expander(f"{row['AC Name']} - Escalation Details"):
+                        col1, col2 = st.columns([1, 2])
+                        col1.write(f"Escalation: {row['Escalation']}")
+                        col2.write(f"Level: {row['Escalation Level']}")
+
+                        st.write(f"Escalation Detail: {row['Escalation Detail']}")
+                        st.write(f"Issue Raised To: {row['Issue Raised To']}")
+
+                        # Editable Zone Response and Comment in mobile view
+                        new_zone_response = st.selectbox(
+                            'Zone Response',
+                            options=[row['Director Response'], 'Pass', 'Reject', 'Hold'],
+                            index=0 if row['Director Response'] == '' else ['Pass', 'Reject', 'Hold'].index(row['Director Response']),
+                            key=f'director_response_{idx}'
+                        )
+
+                        new_comment = st.text_input(
+                            'Director Comment',
+                            value=row['Director Comment'],
+                            key=f'director_comment_{idx}'
+                        )
+
+                        # Append updated rows back to the dataframe
+                        updated_rows.append({
+                            'AC Name': row['AC Name'],
+                            'Escalation': row['Escalation'],
+                            'Escalation Detail': row['Escalation Detail'],
+                            'Escalation Level': row['Escalation Level'],
+                            'Zone Response': new_zone_response,
+                            'Comment': new_comment,
+                            'Issue Raised To': row['Issue Raised To'],
+                            'Director Response': row['Director Response'],
+                            'Director Comment': row['Director Comment']
+                        })
 
         # Convert updated rows back into a DataFrame
         df_updated = pd.DataFrame(updated_rows)
@@ -609,7 +699,6 @@ def logout():
 
 #     if logout_button:
 #         logout()
-
 
 def render_navigation():
     if st.session_state['role'] == 'user':
@@ -732,7 +821,12 @@ def main():
         elif tab=='Director Dashboard' and (st.session_state['role'] in ['user2', 'user3']):
             display_director_dashboard()    
         elif tab=="logout":
-            logout()    
+            logout()   
+        # elif tab=='Mobile View':
+            
+        
+            
+                 
 
 if __name__ == "__main__":
     main()

@@ -178,7 +178,8 @@ def input_form(df):
     escalation_details = []
     for escalation in selected_escalations:
         st.markdown(f"### Escalation Details for {escalation}")
-        
+
+        intro=st.text_area(f"{escalation} detail in one line")
         # Escalation Detail text input
         detail = st.text_area(f"Escalation Detail for {escalation}")
         
@@ -186,11 +187,12 @@ def input_form(df):
         level = st.selectbox(f'Escalation Level for {escalation}', options=['Low', 'Medium', 'High'])
         
         # Issue Raised To
-        raised_to = st.selectbox(f'Issue Raised to for {escalation}', options=['Anurag', 'Anant', 'Alimpan Banerjee'])
+        raised_to = st.selectbox(f'Issue Raised to for {escalation}', options=['Anurag Saxena', 'Anant Tiwari', 'Alimpan Banerjee','Sanjay More (Party, Dispute)','Bhausaheb Choudhary (Party, Joining)', 'Ashishish Kulkarni (Party, Alliance Coordination)','Sanjay More (Party, Alliance Coordination)','Sanjay More (Party, Organizational Issue)','Sandeep Shinde (Party, Governance Issue)','Sachin Joshi (Party, Governance Issue)','Bhausaheb Choudhary (Party, STC Team coordination with Party)'])
         
         # Store all details in a dictionary for this escalation
         escalation_details.append({
             'Escalation': escalation,
+            'Escalation Intro': intro,
             'Escalation Detail': detail,
             'Escalation Level': level,
             'Issue Raised To': raised_to
@@ -207,6 +209,7 @@ def input_form(df):
                 'AC Name': ac_name,
                 'Person Name': person_name,
                 'Escalation': escalation_detail['Escalation'],
+                'Escalation Intro': escalation_detail['Escalation Intro'],
                 'Escalation Detail': escalation_detail['Escalation Detail'],
                 'Escalation Level': escalation_detail['Escalation Level'],
                 'Issue Raised To': escalation_detail['Issue Raised To'],
@@ -293,7 +296,7 @@ def display_dashboard():
     ### Alert Level Table
     st.markdown("## Alert Level Summary")
 
-    alert_levels = ['Alert', 'Mid Alert', 'Normal']
+    alert_levels = ['Low', 'Medium', 'High']
     alert_summary = []
 
     for level in alert_levels:
@@ -369,13 +372,14 @@ def display_dashboard():
             # Dynamically adjust columns for desktop vs mobile view
             if  st.session_state['mobile_view']:
                 # Mobile view: use fewer columns and show details in an expander
-                with st.expander(f"{row['AC Name']} - Escalation Details"):
+                with st.expander(f"{row['AC Name']} , {row['Zone Response']} - Escalation Details"):
                     col1, col2 = st.columns([1, 2])
                     col1.write(f"Escalation: {row['Escalation']}")
                     col2.write(f"Level: {row['Escalation Level']}")
-                    
+                    st.write(f"Escalation Intro: {row['Escalation Intro']}")
                     st.write(f"Escalation Detail: {row['Escalation Detail']}")
                     st.write(f"Issue Raised To: {row['Issue Raised To']}")
+
 
                     # Editable Zone Response and Comment in mobile view
                     new_zone_response = st.selectbox(
@@ -393,26 +397,28 @@ def display_dashboard():
 
             else:
                 # Desktop view: retain multiple columns for richer details
-                col1, col2, col3, col4, col5, col6, col7 = st.columns([1, 1, 1.5, 1, 1, 1.5, 1])
+                col1, col2, col3, col4, col5, col6, col7 ,col8= st.columns([1, 1, 1.5, 1.5, 1, 1, 1.5, 1,])
 
                 # Static columns
                 if flag:
                     col1.write('AC Name')
                     col2.write('Escalation')
-                    col3.write('Escalation Detail')
-                    col4.write('Escalation Level')
-                    col5.write('Zone Response')
-                    col6.write('Comment')
-                    col7.write('Issue Raised To')
+                    col3.write('Escalation Intro')
+                    col4.write('Escalation Detail')
+                    col5.write('Escalation Level')
+                    col6.write('Zone Response')
+                    col7.write('Comment')
+                    col8.write('Issue Raised To')
                     flag = False
 
                 col1.write(row['AC Name'])
                 col2.write(row['Escalation'])
-                col3.write(row['Escalation Detail'])
-                col4.write(row['Escalation Level'])
+                col3.write(row['Escalation Intro'])
+                col4.write(row['Escalation Detail'])
+                col5.write(row['Escalation Level'])
 
                 # Editable Zone Response Dropdown for desktop view
-                new_zone_response = col5.selectbox(
+                new_zone_response = col6.selectbox(
                     '',
                     options=[row['Zone Response'], 'Pass', 'Reject', 'Hold'],
                     index=0 if row['Zone Response'] == '' else ['Pass', 'Reject', 'Hold'].index(row['Zone Response']),
@@ -420,19 +426,20 @@ def display_dashboard():
                 )
 
                 # Editable Comment Text Input
-                new_comment = col6.text_input(
+                new_comment = col7.text_input(
                     '',
                     value=row['Comment'],
                     key=f'comment_{idx}'
                 )
 
                 # Static column for Issue Raised To
-                col7.write(row['Issue Raised To'])
+                col8.write(row['Issue Raised To'])
 
             # Append updated rows back to the dataframe
             updated_rows.append({
                 'AC Name': row['AC Name'],
                 'Escalation': row['Escalation'],
+                'Escalation Intro': row['Escalation Intro'],
                 'Escalation Detail': row['Escalation Detail'],
                 'Escalation Level': row['Escalation Level'],
                 'Zone Response': new_zone_response,
@@ -519,7 +526,7 @@ def display_director_dashboard():
     ### Alert Level Table
     st.markdown("## Alert Level Summary")
 
-    alert_levels = ['Alert', 'Mid Alert', 'Normal']
+    alert_levels = ['Low', 'Medium', 'High']
     alert_summary = []
 
     for level in alert_levels:
@@ -581,30 +588,32 @@ def display_director_dashboard():
             flag=True
             # Loop through each row and create the table body with inputs for desktop view
             for idx, row in filtered_ac_activities.iterrows():
-                col1, col2, col3, col4, col5, col6, col7, col8, col9 = st.columns([1, 1, 1.5, 1, 1, 1.5, 1, 1.5, 1])
+                col1, col2, col3, col4, col5, col6, col7, col8, col9 ,col10= st.columns([1, 1, 1.5, 1.5, 1, 1, 1.5, 1, 1.5, 1])
 
                 if flag:
                     col1.write('AC Name')
                     col2.write('Escalation')
-                    col3.write('Escalation Detail')
-                    col4.write('Escalation Level')
-                    col5.write('Zone Response')
-                    col6.write('Comment')
-                    col7.write('Director Response')
-                    col8.write('Director Comment')
-                    col9.write('Issue Raised To')
+                    col3.write('Escalation Intro')
+                    col4.write('Escalation Detail')
+                    col5.write('Escalation Level')
+                    col6.write('Zone Response')
+                    col7.write('Comment')
+                    col8.write('Director Response')
+                    col9.write('Director Comment')
+                    col10.write('Issue Raised To')
                     flag = False
 
                 # Static columns
                 col1.write(row['AC Name'])
                 col2.write(row['Escalation'])
-                col3.write(row['Escalation Detail'])
-                col4.write(row['Escalation Level'])
-                col5.write(row['Zone Response'])  # Static Zone Response
-                col6.write(row['Comment'])        # Static Zone Comment
+                col3.write(row['Escalation Intro'])
+                col4.write(row['Escalation Detail'])
+                col5.write(row['Escalation Level'])
+                col6.write(row['Zone Response'])  # Static Zone Response
+                col7.write(row['Comment'])        # Static Zone Comment
 
                 # Editable 'Director Response' Dropdown
-                new_director_response = col7.selectbox(
+                new_director_response = col8.selectbox(
                     '',
                     options=[row['Director Response'], 'Pass', 'Reject', 'Hold'],
                     index=0 if row['Director Response'] == '' else ['Pass', 'Reject', 'Hold'].index(row['Director Response']),
@@ -612,19 +621,20 @@ def display_director_dashboard():
                 )
 
                 # Editable 'Director Comment' Text Input
-                new_director_comment = col8.text_input(
+                new_director_comment = col9.text_input(
                     '',
                     value=row['Director Comment'],
                     key=f'director_comment_{idx}'
                 )
 
                 # Static column for 'Issue Raised To'
-                col9.write(row['Issue Raised To'])
+                col10.write(row['Issue Raised To'])
 
                 # Append updated rows back to the dataframe
                 updated_rows.append({
                     'AC Name': row['AC Name'],
                     'Escalation': row['Escalation'],
+                    'Escalation Intro': row['Escalation Intro'],
                     'Escalation Detail': row['Escalation Detail'],
                     'Escalation Level': row['Escalation Level'],
                     'Zone Response': row['Zone Response'],
@@ -642,11 +652,11 @@ def display_director_dashboard():
             # Mobile view: use fewer columns and show details in expanders
             for idx, row in filtered_ac_activities.iterrows():
                 if  st.session_state['mobile_view']:
-                    with st.expander(f"{row['AC Name']} - Escalation Details"):
+                    with st.expander(f"{row['AC Name']} , {row['Director Response']} , {row['Issue Raised To']} - Escalation Details"):
                         col1, col2 = st.columns([1, 2])
                         col1.write(f"Escalation: {row['Escalation']}")
                         col2.write(f"Level: {row['Escalation Level']}")
-
+                        st.write(f"Escalation Intro: {row['Escalation Intro']}")
                         st.write(f"Escalation Detail: {row['Escalation Detail']}")
                         st.write(f"Issue Raised To: {row['Issue Raised To']}")
 
@@ -668,6 +678,7 @@ def display_director_dashboard():
                         updated_rows.append({
                             'AC Name': row['AC Name'],
                             'Escalation': row['Escalation'],
+                            'Escalation Intro': row['Escalation Intro'],
                             'Escalation Detail': row['Escalation Detail'],
                             'Escalation Level': row['Escalation Level'],
                             'Zone Response': new_zone_response,

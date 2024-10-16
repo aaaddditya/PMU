@@ -179,7 +179,7 @@ def input_form(df):
     for escalation in selected_escalations:
         st.markdown(f"### Escalation Details for {escalation}")
 
-        intro=st.text_area(f"{escalation} detail in one line")
+        intro=st.text_input(f"{escalation} detail in one line")
         # Escalation Detail text input
         detail = st.text_area(f"Escalation Detail for {escalation}")
         
@@ -238,7 +238,7 @@ def input_form(df):
 
 def load_ac_list():
     return pd.read_csv('118_AC_list.csv')
-
+                                                           
 def load_mla_activities():
     return pd.read_csv('mla_activities.csv')
 
@@ -254,7 +254,12 @@ def display_dashboard():
 
     # Zone Selection
     unique_zones = ac_list['Zone'].unique()
-    selected_zone = st.selectbox('Select Zone', options=unique_zones)
+    df13=pd.read_csv('user1.csv')
+    temp= df13[df13['userName']==st.session_state['userName']]['Zone'].values[0]
+    if temp:
+        selected_zone = st.selectbox('Select Zone', options=[temp])
+    else:
+        selected_zone = st.selectbox('Select Zone', options=unique_zones)
 
     # Filter AC Names based on selected Zone
     filtered_ac_names = ac_list[ac_list['Zone'] == selected_zone]['AC Name'].unique()

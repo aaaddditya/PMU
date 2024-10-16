@@ -255,9 +255,10 @@ def display_dashboard():
     # Zone Selection
     unique_zones = ac_list['Zone'].unique()
     df13=pd.read_csv('user1.csv')
-    temp= df13[df13['userName']==st.session_state['userName']]['Zone'].values[0]
+    temp= df13[df13['userName']==st.session_state['userName']]['Zone'].values
     if temp:
-        selected_zone = st.selectbox('Select Zone', options=[temp])
+        
+        selected_zone = st.selectbox('Select Zone', options=temp)
     else:
         selected_zone = st.selectbox('Select Zone', options=unique_zones)
 

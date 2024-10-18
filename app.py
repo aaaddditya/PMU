@@ -787,6 +787,7 @@ def home_page():
         unsafe_allow_html=True
     )
     if st.session_state.get('userName') == "Aditya Malhotra":
+        st.write(pd.read_csv('mla_activities.csv'))
         st.download_button(
             label="Download data as CSV",
             data=pd.read_csv('mla_activities.csv').to_csv(index=False),

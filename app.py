@@ -551,11 +551,18 @@ def display_director_dashboard():
     # Add a dropdown to select an AC Name from the filtered activities in the selected Zone
     st.markdown("## Select AC Name")
     unique_ac_names = passed_activities['AC Name'].unique()
+    # st.write(passed_activities.head(2))
     selected_ac_name = st.selectbox('Select AC Name', options=unique_ac_names)
 
-    # Filter data based on the selected AC Name
-    filtered_ac_activities = passed_activities[passed_activities['AC Name'] == selected_ac_name]
+    st.markdown("## Select Issue Raised to Name")
+    unique_issue_names = passed_activities['Issue Raised To'].unique()
+    # st.write(passed_activities.head(2))
+    selected_issue_name = st.selectbox('Select Issue Name', options=unique_issue_names)
 
+    # Filter data based on the selected AC Name
+    filtered_ac_activities = passed_activities[(passed_activities['AC Name'] == selected_ac_name) & (passed_activities['Issue Raised To'] == selected_issue_name)]
+
+    
     # Display filtered data
 
     st.markdown(f"## Database for AC: {selected_ac_name}")
@@ -779,6 +786,14 @@ def home_page():
         """,
         unsafe_allow_html=True
     )
+    if st.session_state.get('userName') == "Aditya Malhotra":
+        st.download_button(
+            label="Download data as CSV",
+            data=pd.read_csv('mla_activities.csv').to_csv(index=False),
+            file_name="mla_activities.csv",
+            mime="text/csv",
+        )
+
 
 
 if not st.session_state['logged_in']:

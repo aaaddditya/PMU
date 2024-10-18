@@ -674,14 +674,14 @@ def display_director_dashboard():
                         st.write(f"Issue Raised To: {row['Issue Raised To']}")
 
                         # Editable Zone Response and Comment in mobile view
-                        new_zone_response = st.selectbox(
-                            'Zone Response',
+                        new_director_response = st.selectbox(
+                            'Director Response',
                             options=[row['Director Response'], 'Resolved', 'Cannot be Resolved', 'In Discussion'],
                             index=0 if row['Director Response'] == '' else ['Resolved', 'Cannot be Resolved', 'In Discussion'].index(row['Director Response']),
                             key=f'director_response_{idx}'
                         )
 
-                        new_comment = st.text_input(
+                        new_director_comment = st.text_input(
                             'Director Comment',
                             value=row['Director Comment'],
                             key=f'director_comment_{idx}'
@@ -694,11 +694,11 @@ def display_director_dashboard():
                             'Escalation Intro': row['Escalation Intro'],
                             'Escalation Detail': row['Escalation Detail'],
                             'Escalation Level': row['Escalation Level'],
-                            'Zone Response': new_zone_response,
-                            'Comment': new_comment,
+                            'Zone Response': row['Zone Response'],
+                            'Comment': row['Comment'],
                             'Issue Raised To': row['Issue Raised To'],
-                            'Director Response': row['Director Response'],
-                            'Director Comment': row['Director Comment']
+                            'Director Response': new_director_response,
+                            'Director Comment': new_director_comment
                         })
 
         # Convert updated rows back into a DataFrame

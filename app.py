@@ -479,12 +479,12 @@ def display_director_dashboard():
     filtered_activities1=mla_activities[(mla_activities['Zone Response'] == 'Pass')]
     summary_data = {
         "Total Escalations": filtered_activities1['Escalation'].count(),
-        "Pass": filtered_activities1[filtered_activities1['Director Response'] == 'Pass'].shape[0],
-        "Reject": filtered_activities1[filtered_activities1['Director Response'] == 'Reject'].shape[0],
-        "Hold": filtered_activities1[filtered_activities1['Director Response'] == 'Hold'].shape[0],
-        "Remaining": filtered_activities1['Director Response'].isna().sum()
+        "Resolved": filtered_activities1[filtered_activities1['Director Response'] == 'Resolved'].shape[0],
+        "Cannot be Resolved": filtered_activities1[filtered_activities1['Director Response'] == 'Cannot be Resolved'].shape[0],
+        "In Discussion": filtered_activities1[filtered_activities1['Director Response'] == 'In Discussion'].shape[0],
+        "Pending": filtered_activities1['Director Response'].isna().sum()
     }
-
+    
     st.write(pd.DataFrame([summary_data]))
     # Zone Selection
     unique_zones = ac_list['Zone'].unique()
@@ -504,10 +504,10 @@ def display_director_dashboard():
 
     summary_data = {
         "Total Escalations": passed_activities['Escalation'].count(),
-        "Pass": passed_activities[passed_activities['Director Response'] == 'Pass'].shape[0],
-        "Reject": passed_activities[passed_activities['Director Response'] == 'Reject'].shape[0],
-        "Hold": passed_activities[passed_activities['Director Response'] == 'Hold'].shape[0],
-        "Remaining": passed_activities['Director Response'].isna().sum()
+        "Resolved": passed_activities[passed_activities['Director Response'] == 'Resolved'].shape[0],
+        "Cannot be Resolved": passed_activities[passed_activities['Director Response'] == 'Cannot be Resolved'].shape[0],
+        "In Discussion": passed_activities[passed_activities['Director Response'] == 'In Discussion'].shape[0],
+        "Pending": passed_activities['Director Response'].isna().sum()
     }
 
     st.write(pd.DataFrame([summary_data]))
@@ -521,10 +521,10 @@ def display_director_dashboard():
         category_summary.append({
             'Category': category,
             'Total': cat_data.shape[0],
-            'Pass': cat_data[cat_data['Director Response'] == 'Pass'].shape[0],
-            'Reject': cat_data[cat_data['Director Response'] == 'Reject'].shape[0],
-            'Hold': cat_data[cat_data['Director Response'] == 'Hold'].shape[0],
-            'Remaining': cat_data['Director Response'].isna().sum()
+            'Resolved': cat_data[cat_data['Director Response'] == 'Resolved'].shape[0],
+            'Cannot be Resolved': cat_data[cat_data['Director Response'] == 'Cannot be Resolved'].shape[0],
+            'In Discussion': cat_data[cat_data['Director Response'] == 'In Discussion'].shape[0],
+            'Pending': cat_data['Director Response'].isna().sum()
         })
 
     st.table(pd.DataFrame(category_summary))
@@ -540,10 +540,10 @@ def display_director_dashboard():
         alert_summary.append({
             'Level': level,
             'Total': level_data.shape[0],
-            'Pass': level_data[level_data['Director Response'] == 'Pass'].shape[0],
-            'Reject': level_data[level_data['Director Response'] == 'Reject'].shape[0],
-            'Hold': level_data[level_data['Director Response'] == 'Hold'].shape[0],
-            'Remaining': level_data['Director Response'].isna().sum()
+            'Resolved': level_data[level_data['Director Response'] == 'Resolved'].shape[0],
+            'Cannot be Resolved': level_data[level_data['Director Response'] == 'Cannot be Resolved'].shape[0],
+            'In Discussion': level_data[level_data['Director Response'] == 'In Discussion'].shape[0],
+            'Pending': level_data['Director Response'].isna().sum()
         })
 
     st.table(pd.DataFrame(alert_summary))
@@ -621,8 +621,8 @@ def display_director_dashboard():
                 # Editable 'Director Response' Dropdown
                 new_director_response = col8.selectbox(
                     '',
-                    options=[row['Director Response'], 'Pass', 'Reject', 'Hold'],
-                    index=0 if row['Director Response'] == '' else ['Pass', 'Reject', 'Hold'].index(row['Director Response']),
+                    options=[row['Director Response'], 'Resolved', 'Cannot be Resolved', 'In Discussion'],
+                    index=0 if row['Director Response'] == '' else ['Resolved', 'Cannot be Resolved', 'In Discussion'].index(row['Director Response']),
                     key=f'director_response_{idx}'
                 )
 
@@ -669,8 +669,8 @@ def display_director_dashboard():
                         # Editable Zone Response and Comment in mobile view
                         new_zone_response = st.selectbox(
                             'Zone Response',
-                            options=[row['Director Response'], 'Pass', 'Reject', 'Hold'],
-                            index=0 if row['Director Response'] == '' else ['Pass', 'Reject', 'Hold'].index(row['Director Response']),
+                            options=[row['Director Response'], 'Resolved', 'Cannot be Resolved', 'In Discussion'],
+                            index=0 if row['Director Response'] == '' else ['Resolved', 'Cannot be Resolved', 'In Discussion'].index(row['Director Response']),
                             key=f'director_response_{idx}'
                         )
 

@@ -206,17 +206,17 @@ def input_form(df):
         for escalation_detail in escalation_details:
             row = {
                 'Date': input_date,
-                'AC Name': ac_name,
                 'Person Name': person_name,
+                'AC Name': ac_name,               
                 'Escalation': escalation_detail['Escalation'],
                 'Escalation Intro': escalation_detail['Escalation Intro'],
                 'Escalation Detail': escalation_detail['Escalation Detail'],
                 'Escalation Level': escalation_detail['Escalation Level'],
-                'Issue Raised To': escalation_detail['Issue Raised To'],
                 'Zone Response':'',
                 'Comment':'',
                 'Director Response':'',
-                'Director Comment':''
+                'Director Comment':'',
+                'Issue Raised To': escalation_detail['Issue Raised To']
             }
             rows.append(row)
 
@@ -443,16 +443,18 @@ def display_dashboard():
 
             # Append updated rows back to the dataframe
             updated_rows.append({
+                'Date': row['Date'],                
+                'Person Name': row['Person Name'],
                 'AC Name': row['AC Name'],
                 'Escalation': row['Escalation'],
                 'Escalation Intro': row['Escalation Intro'],
                 'Escalation Detail': row['Escalation Detail'],
                 'Escalation Level': row['Escalation Level'],
                 'Zone Response': new_zone_response,
-                'Comment': new_comment,
-                'Issue Raised To': row['Issue Raised To'],
+                'Comment': new_comment,               
                 'Director Response': row['Director Response'],
-                'Director Comment': row['Director Comment']
+                'Director Comment': row['Director Comment'],
+                'Issue Raised To': row['Issue Raised To']
             })
 
         st.markdown("</tbody></table>", unsafe_allow_html=True)
@@ -645,6 +647,8 @@ def display_director_dashboard():
 
                 # Append updated rows back to the dataframe
                 updated_rows.append({
+                    'Date': row['Date'],                
+                    'Person Name': row['Person Name'],
                     'AC Name': row['AC Name'],
                     'Escalation': row['Escalation'],
                     'Escalation Intro': row['Escalation Intro'],
@@ -689,16 +693,18 @@ def display_director_dashboard():
 
                         # Append updated rows back to the dataframe
                         updated_rows.append({
+                            'Date': row['Date'],                
+                            'Person Name': row['Person Name'],
                             'AC Name': row['AC Name'],
                             'Escalation': row['Escalation'],
                             'Escalation Intro': row['Escalation Intro'],
                             'Escalation Detail': row['Escalation Detail'],
                             'Escalation Level': row['Escalation Level'],
                             'Zone Response': row['Zone Response'],
-                            'Comment': row['Comment'],
-                            'Issue Raised To': row['Issue Raised To'],
+                            'Comment': row['Comment'],                           
                             'Director Response': new_director_response,
-                            'Director Comment': new_director_comment
+                            'Director Comment': new_director_comment,
+                            'Issue Raised To': row['Issue Raised To'],
                         })
 
         # Convert updated rows back into a DataFrame

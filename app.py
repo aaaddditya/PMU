@@ -74,8 +74,7 @@ def login_page():
                 st.error("Invalid email or password")
         
         st.markdown("</div>", unsafe_allow_html=True)
-
-
+        
 # Function for Home page
 
 def load_data(selected_date, selected_ac_name):
@@ -147,7 +146,7 @@ def display_navbar():
     if st.session_state['role'] == "user":
         tab=st_navbar(["Home", "Input","logout"], styles=styles)
     elif st.session_state['role'] == "user1":   
-        tab=st_navbar(["Home", "Dashboard","logout"], styles=styles)
+        tab=st_navbar(["Home", "Input", "Dashboard","logout"], styles=styles)
     elif st.session_state['role'] == "user2": 
         tab=st_navbar(["Home", "Director Dashboard","logout"], styles=styles)
     elif st.session_state['role'] == "user3":    
@@ -736,6 +735,7 @@ def render_navigation():
         st.sidebar.button("Input", on_click=input_form)
     elif st.session_state['role'] == 'user1':
         st.sidebar.button("Home", on_click=home_page)
+        st.sidebar.button("Input", on_click=input_form)
         st.sidebar.button("Dashboard", on_click=display_dashboard)
     elif st.session_state['role'] == 'user2':
         st.sidebar.button("Home", on_click=home_page)
@@ -850,7 +850,7 @@ def main():
             home_page()
 
         # Input tab
-        elif tab == 'Input' and (st.session_state['role'] in ['user', 'user3']):
+        elif tab == 'Input' and (st.session_state['role'] in ['user', 'user1', 'user3']):
             input_form(df)
 
         # Dashboard tab

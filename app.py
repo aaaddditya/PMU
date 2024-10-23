@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 import os
-from datetime import date
+from datetime import datetime,date
 import numpy as np
 from streamlit_navigation_bar import st_navbar
 from PIL import Image
@@ -12,8 +12,6 @@ st.set_page_config(
 )
 # st._config.set_option(backgroundColor:'')
 
-def load_user_data():
-    return pd.read_csv('userdata.csv')
 
 # Function to check login credentials
 def authenticate_user(email, password, user_data):
@@ -63,7 +61,7 @@ def login_page():
                 st.error("Password must be a number.")
                 return
             
-            user_data = load_user_data()
+            user_data = pd.read_csv('userdata.csv')
             userName, role = authenticate_user(email, password, user_data)
             if userName:
                 st.session_state['logged_in'] = True
@@ -74,26 +72,27 @@ def login_page():
                 st.error("Invalid email or password")
         
         st.markdown("</div>", unsafe_allow_html=True)
-        
+
+
 # Function for Home page
 
-def load_data(selected_date, selected_ac_name):
-    file_name = f"{selected_date.strftime('%d%m%Y')}.csv"
-    if os.path.exists(file_name):
-        try:
-            df = pd.read_csv(file_name)
-            if df.empty:
-                st.warning("The file is empty. No data available.")
-                return None
-            # Filter the data by AC Name
-            filtered_df = df[df['AC Name'] == selected_ac_name]
-            return filtered_df
-        except pd.errors.EmptyDataError:
-            st.error(f"The file {file_name} is empty.")
-            return None
-    else:
-        st.warning(f"No data file found for the date {selected_date.strftime('%d%m%Y')}.")
-        return None
+# def load_data(selected_date, selected_ac_name):
+#     file_name = f"{selected_date.strftime('%d%m%Y')}.csv"
+#     if os.path.exists(file_name):
+#         try:
+#             df = pd.read_csv(file_name)
+#             if df.empty:
+#                 st.warning("The file is empty. No data available.")
+#                 return None
+#             # Filter the data by AC Name
+#             filtered_df = df[df['AC Name'] == selected_ac_name]
+#             return filtered_df
+#         except pd.errors.EmptyDataError:
+#             st.error(f"The file {file_name} is empty.")
+#             return None
+#     else:
+#         st.warning(f"No data file found for the date {selected_date.strftime('%d%m%Y')}.")
+#         return None
 
 # Function to load AC data from 118_AC_list.csv
 def load_ac_data(ac_name):
@@ -105,15 +104,15 @@ def load_ac_data(ac_name):
     else:
         return None
     
-def load_ddmm_data(selected_date, ac_name):
-    file_name = f"{selected_date.strftime('%d%m%Y')}.csv"
-    if os.path.exists(file_name):
-        df = pd.read_csv(file_name)
-        # Filter the data by AC Name
-        filtered_df = df[df['AC Name'] == ac_name]
-        return filtered_df
-    else:
-        return None
+# def load_ddmm_data(selected_date, ac_name):
+#     file_name = f"{selected_date.strftime('%d%m%Y')}.csv"
+#     if os.path.exists(file_name):
+#         df = pd.read_csv(file_name)
+#         # Filter the data by AC Name
+#         filtered_df = df[df['AC Name'] == ac_name]
+#         return filtered_df
+#     else:
+#         return None
         
 # Navbar Functionality (Tab navigation)
 def display_navbar():
@@ -146,7 +145,7 @@ def display_navbar():
     if st.session_state['role'] == "user":
         tab=st_navbar(["Home", "Input","logout"], styles=styles)
     elif st.session_state['role'] == "user1":   
-        tab=st_navbar(["Home", "Input", "Dashboard","logout"], styles=styles)
+        tab=st_navbar(["Home", "Dashboard","logout"], styles=styles)
     elif st.session_state['role'] == "user2": 
         tab=st_navbar(["Home", "Director Dashboard","logout"], styles=styles)
     elif st.session_state['role'] == "user3":    
@@ -160,11 +159,17 @@ def input_form(df):
     st.title("Input Data for AC Escalation")
 
     # Date (default value is today)
-    input_date = st.date_input('Date', value=date.today())
+    input_date=st.date_input('Date', value=date.today())
+    current_time = datetime.now().time()
+
+# Combine the date and current time
+    combined_datetime = datetime.combine(input_date, current_time)
+
+    st.write(combined_datetime)
 
     # AC Name dropdown (from 3rd column of loaded data)
     unique_ac_names = df.iloc[:, 2].unique()
-    ac_name = st.selectbox('AC Name', options=unique_ac_names)
+    ac_name = st.selectbox('AC Name', options=sorted(unique_ac_names))
 
     # Name of person
     person_name = st.text_input('ACM Name')
@@ -204,7 +209,7 @@ def input_form(df):
         rows = []
         for escalation_detail in escalation_details:
             row = {
-                'Date': input_date,
+                'Date': combined_datetime,
                 'Person Name': person_name,
                 'AC Name': ac_name,               
                 'Escalation': escalation_detail['Escalation'],
@@ -267,7 +272,7 @@ def display_dashboard():
 
     # Filter mla_activities based on the selected Zone
     filtered_activities = mla_activities[mla_activities['AC Name'].isin(filtered_ac_names)]
-
+    st.write(filtered_activities)
     ### Summary Table: Total Escalations & Status Breakdown
     st.markdown("## Escalation Summary")
 
@@ -351,25 +356,7 @@ def display_dashboard():
             unsafe_allow_html=True
         )
         
-        # Create table headers
-        # st.markdown(
-        #     """
-        #     <table class="align-table">
-        #         <thead>
-        #             <tr>
-        #                 <th>AC Name</th>
-        #                 <th>Escalation</th>
-        #                 <th>Escalation Detail</th>
-        #                 <th>Escalation Level</th>
-        #                 <th>Zone Response</th>
-        #                 <th>Comment</th>
-        #                 <th>Issue Raised To</th>
-        #             </tr>
-        #         </thead>
-        #         <tbody>
-        #     """, 
-        #     unsafe_allow_html=True
-        # )
+       
         flag = True
         updated_rows = []
         mobile_view=True
@@ -389,8 +376,8 @@ def display_dashboard():
                     # Editable Zone Response and Comment in mobile view
                     new_zone_response = st.selectbox(
                         'Zone Response',
-                        options=[row['Zone Response'], 'Pass', 'Reject', 'Hold'],
-                        index=0 if row['Zone Response'] == '' else ['Pass', 'Reject', 'Hold'].index(row['Zone Response']),
+                        options=['','Pass', 'Reject', 'Hold'],
+                        index=0 if row['Zone Response'] == '' else ['','Pass', 'Reject', 'Hold'].index(row['Zone Response']),
                         key=f'zone_response_{idx}'
                     )
                     
@@ -425,14 +412,14 @@ def display_dashboard():
                 # Editable Zone Response Dropdown for desktop view
                 new_zone_response = col6.selectbox(
                     '',
-                    options=[row['Zone Response'], 'Pass', 'Reject', 'Hold'],
-                    index=0 if row['Zone Response'] == '' else ['Pass', 'Reject', 'Hold'].index(row['Zone Response']),
+                    options=['', 'Pass', 'Reject', 'Hold'],
+                    index=0 if row['Zone Response'] == '' else ['','Pass', 'Reject', 'Hold'].index(row['Zone Response']),
                     key=f'zone_response_{idx}'
                 )
-
                 # Editable Comment Text Input
                 new_comment = col7.text_input(
                     '',
+                    placeholder=row['Comment'],
                     value=row['Comment'],
                     key=f'comment_{idx}'
                 )
@@ -459,12 +446,33 @@ def display_dashboard():
         st.markdown("</tbody></table>", unsafe_allow_html=True)
 
         # Convert updated rows back into a DataFrame
-        df_updated = pd.DataFrame(updated_rows)
+
+        
+        
 
         # Save button to update the CSV file
         if st.button("Update Database"):
-            update_mla_activities(df_updated)
+            # df_updated.to_csv('mla_activities.csv', index=False)
+
+            df = pd.read_csv('mla_activities.csv')
+
+
+            # Loop through the updated_rows list
+            for updated_row in updated_rows:
+                # Define the conditions
+                date_condition = updated_row['Date']
+                name_condition = updated_row['Person Name']
+                
+                # Update the DataFrame where conditions match
+                df.loc[(df['Date'] == date_condition) & (df['Person Name'] == name_condition), 'Zone Response'] = updated_row['Zone Response']
+                df.loc[(df['Date'] == date_condition) & (df['Person Name'] == name_condition), 'Comment'] = updated_row['Comment']
+
+            # Save the updated DataFrame back to the CSV file
+            df.to_csv('mla_activities.csv', index=False)
+
             st.success("Database updated successfully!")
+            time.sleep(1)
+            st.rerun()
 
     else:
         st.warning("No data available for the selected Zone.")
@@ -629,8 +637,8 @@ def display_director_dashboard():
                 # Editable 'Director Response' Dropdown
                 new_director_response = col8.selectbox(
                     '',
-                    options=[row['Director Response'], 'Resolved', 'Cannot be Resolved', 'In Discussion'],
-                    index=0 if row['Director Response'] == '' else ['Resolved', 'Cannot be Resolved', 'In Discussion'].index(row['Director Response']),
+                    options=['','Resolved', 'Cannot be Resolved', 'In Discussion'],
+                    index=0 if row['Director Response'] == '' else ['','Resolved', 'Cannot be Resolved', 'In Discussion'].index(row['Director Response']),
                     key=f'director_response_{idx}'
                 )
 
@@ -679,8 +687,8 @@ def display_director_dashboard():
                         # Editable Zone Response and Comment in mobile view
                         new_director_response = st.selectbox(
                             'Director Response',
-                            options=[row['Director Response'], 'Resolved', 'Cannot be Resolved', 'In Discussion'],
-                            index=0 if row['Director Response'] == '' else ['Resolved', 'Cannot be Resolved', 'In Discussion'].index(row['Director Response']),
+                            options=['', 'Resolved', 'Cannot be Resolved', 'In Discussion'],
+                            index=0 if row['Director Response'] == '' else ['','Resolved', 'Cannot be Resolved', 'In Discussion'].index(row['Director Response']),
                             key=f'director_response_{idx}'
                         )
 
@@ -711,8 +719,27 @@ def display_director_dashboard():
 
         # Save button to update the CSV file
         if st.button("Update Director Responses"):
-            update_mla_activities(df_updated)
+            df = pd.read_csv('mla_activities.csv')
+
+            # Example updated_rows list with new values for Director Response and Comment
+           
+
+            # Loop through the updated_rows list
+            for updated_row in updated_rows:
+                date_condition = updated_row['Date']
+                name_condition = updated_row['Person Name']
+                
+                # Update the DataFrame where conditions match
+                df.loc[(df['Date'] == date_condition) & (df['Person Name'] == name_condition), 'Director Response'] = updated_row['Director Response']
+                df.loc[(df['Date'] == date_condition) & (df['Person Name'] == name_condition), 'Director Comment'] = updated_row['Director Comment']
+
+            # Save the updated DataFrame back to the CSV file
+            df.to_csv('mla_activities.csv', index=False)
+
+
             st.success("Director responses updated successfully!")
+            time.sleep(1)
+            st.rerun()
 
     else:
         st.warning(f"No data available for the selected AC Name: {selected_ac_name}.")
@@ -735,7 +762,6 @@ def render_navigation():
         st.sidebar.button("Input", on_click=input_form)
     elif st.session_state['role'] == 'user1':
         st.sidebar.button("Home", on_click=home_page)
-        st.sidebar.button("Input", on_click=input_form)
         st.sidebar.button("Dashboard", on_click=display_dashboard)
     elif st.session_state['role'] == 'user2':
         st.sidebar.button("Home", on_click=home_page)
@@ -850,7 +876,7 @@ def main():
             home_page()
 
         # Input tab
-        elif tab == 'Input' and (st.session_state['role'] in ['user', 'user1', 'user3']):
+        elif tab == 'Input' and (st.session_state['role'] in ['user', 'user3']):
             input_form(df)
 
         # Dashboard tab

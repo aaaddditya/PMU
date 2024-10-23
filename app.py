@@ -15,14 +15,14 @@ st.set_page_config(
 
 # Function to check login credentials
 def authenticate_user(email, password, user_data):
-    user_row = user_data[(user_data['email'] == email) & (user_data['password'] == password)]
+    user_row = user_data[(user_data['email'] == email) & (       user_data['password'] == password)]
     if not user_row.empty:
         return user_row.iloc[0]['userName'], user_row.iloc[0]['roles']
     return None, None
 
 if 'logged_in' not in st.session_state:
     st.session_state['logged_in'] = False
-    st.session_state['userName'] = ''
+    st.session_state['userName'] = ''    
     st.session_state['role'] = ''
 
 def init_session_state():
@@ -39,7 +39,7 @@ def change_mobile_view():
         st.session_state['mobile_view']=False
     else:
         st.session_state['mobile_view']=True
-
+ 
 def login_page():
     st.markdown("<h1 style='color:#0897ff;text-align:center'>2024 AE Escalation</h1>", unsafe_allow_html=True)
     st.markdown("<h3 style='text-align:center'>Login Page</h3>", unsafe_allow_html=True)

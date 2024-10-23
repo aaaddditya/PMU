@@ -145,7 +145,7 @@ def display_navbar():
     if st.session_state['role'] == "user":
         tab=st_navbar(["Home", "Input","logout"], styles=styles)
     elif st.session_state['role'] == "user1":   
-        tab=st_navbar(["Home", "Dashboard","logout"], styles=styles)
+        tab=st_navbar(["Home", "Input", "Dashboard","logout"], styles=styles)
     elif st.session_state['role'] == "user2": 
         tab=st_navbar(["Home", "Director Dashboard","logout"], styles=styles)
     elif st.session_state['role'] == "user3":    
@@ -165,7 +165,7 @@ def input_form(df):
 # Combine the date and current time
     combined_datetime = datetime.combine(input_date, current_time)
 
-    st.write(combined_datetime)
+    # st.write(combined_datetime)
 
     # AC Name dropdown (from 3rd column of loaded data)
     unique_ac_names = df.iloc[:, 2].unique()
@@ -272,7 +272,7 @@ def display_dashboard():
 
     # Filter mla_activities based on the selected Zone
     filtered_activities = mla_activities[mla_activities['AC Name'].isin(filtered_ac_names)]
-    st.write(filtered_activities)
+    # st.write(filtered_activities)
     ### Summary Table: Total Escalations & Status Breakdown
     st.markdown("## Escalation Summary")
 
@@ -762,6 +762,7 @@ def render_navigation():
         st.sidebar.button("Input", on_click=input_form)
     elif st.session_state['role'] == 'user1':
         st.sidebar.button("Home", on_click=home_page)
+        st.sidebar.button("Input", on_click=input_form)
         st.sidebar.button("Dashboard", on_click=display_dashboard)
     elif st.session_state['role'] == 'user2':
         st.sidebar.button("Home", on_click=home_page)
@@ -876,7 +877,7 @@ def main():
             home_page()
 
         # Input tab
-        elif tab == 'Input' and (st.session_state['role'] in ['user', 'user3']):
+        elif tab == 'Input' and (st.session_state['role'] in ['user','user1', 'user3']):
             input_form(df)
 
         # Dashboard tab
